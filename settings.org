@@ -1,0 +1,407 @@
+#+TITLE: lsmag's .emacs.d
+#+PROPERTY: header-args :tangle yes
+#+OPTIONS: TOC:nil
+
+* About
+* Bootstrap
+** Configuration management
+   
+Most packages listed here are installed and configured using [[https://github.com/jwiegley/use-package][use-package]]
+coupled with [[https://github.com/emacsmirror/diminish][diminish]] to hide minor modes from the mode line.
+   
+#+BEGIN_SRC emacs-lisp
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+  
+(require 'use-package)
+(setq use-package-verbose t         ; logs to *Messages* if package takes longer than 1s to load
+      use-package-always-ensure t)  ; always ensures packages are installed
+      
+(use-package diminish)
+#+END_SRC
+
+** Auto-updates
+
+I set [[https://github.com/rranelli/auto-package-update.el][auto-package-update]] to auto update on startup at least once every
+14 days.
+
+#+BEGIN_SRC emacs-lisp
+(use-package auto-package-update
+  :init
+    (setq auto-package-update-interval 14)
+  :config
+    (auto-package-update-maybe))
+#+END_SRC
+
+** Documenting shortcuts
+   
+I try to use [[https://github.com/darksmile/cheatsheet][cheatsheet]] for documenting most shortcuts defined here.
+Type =M-x cheatsheet-show= to take a quick look at them.
+
+#+BEGIN_SRC emacs-lisp
+(use-package cheatsheet)
+#+END_SRC
+
+** Specific customizations
+   
+Sometimes emacs likes to save some specific settings. To avoid
+having these appended to =.init.el=, we tell emacs to save them
+on a special ignored file.
+
+#+BEGIN_SRC emacs-lisp
+(setq custom-file
+      (expand-file-name
+       (concat user-emacs-directory "custom.el")))
+       
+; The `'noerror` here is to ensure emacs doesn't break
+; the custom.el does not exist
+(load custom-file 'noerror)
+#+END_SRC
+
+* Appearance
+** Theme
+   
+The theme I'm using is light [[https://github.com/john2x/plan9-theme.el][plan9-theme]]. It's not "there" when I'm
+editing org files but for most everything else it's good enough for
+me.
+
+#+BEGIN_SRC emacs-lisp
+(use-package plan9-theme
+  :config
+    (load-theme 'plan9 t))
+#+END_SRC
+
+** Font
+   
+My favorite font is =Inconsolata=, you need to install it first for it
+to work here.
+   
+#+BEGIN_SRC emacs-lisp
+(setq default-frame-alist '((font . "Inconsolata-12")))
+#+END_SRC
+
+** Mode line
+   
+I'm using [[https://github.com/Malabarba/smart-mode-line][smart-mode-line]] for beautiful and simple... mode lines (I
+know, _surprise_? I'll stop with the humour). I used to use the dark
+theme before but it didn't play too well with the plan9 theme.
+
+#+BEGIN_SRC emacs-lisp
+(use-package smart-mode-line
+  :init
+    (setq sml/no-confirm-load-theme t)  ; don't prompt to confirm before loading the theme
+    (setq sml/theme 'respectful)
+  :config
+    (sml/setup))
+#+END_SRC
+
+** Cleaning up the UI
+   
+To make the editor look as clean as possible, some =bars= need to be disabled.
+
+#+BEGIN_SRC emacs-lisp
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+#+END_SRC
+
+** Frame title
+   
+This formats the frame title with the buffer name, its mode and where it's saved.
+   
+#+BEGIN_SRC emacs-lisp
+(setq frame-title-format '("" "%b %* [%m]"))
+#+END_SRC
+
+* General
+** Evil
+
+Hey, I like Vim's usability more than Emacs'. That's it, basically. [[https://github.com/emacs-evil/evil][Evil repo]]
+
+#+BEGIN_SRC emacs-lisp
+(use-package evil
+  :config
+    (evil-mode 1))
+#+END_SRC
+
+For keybindings I use [[https://github.com/noctuid/general.el][general]], since it's slightly more flexible than
+other packages I used. The leader key used for shortcuts will be =SPC=.
+
+#+BEGIN_SRC emacs-lisp
+(use-package general
+  :config
+    (general-evil-setup))
+    
+(defconst my-leader-key "SPC")
+#+END_SRC
+
+When referring to shortcuts below - especially in inclusions for =cheatsheet=,
+the function below will cut some of the 
+
+#+BEGIN_SRC emacs-lisp
+(defun my-leader-shortcut/str (shortcut)
+  (concat (concat my-leader-key " ") shortcut))
+#+END_SRC
+
+#+RESULTS:
+: my-leader-shortcut/str
+
+** Ido
+   
+[[https://www.emacswiki.org/emacs/InteractivelyDoThings][Ido]] is an enhanced switch buffer, and comes preinstalled with Emacs 24.x.
+In addition, [[https://github.com/creichert/ido-vertical-mode.el][ido-vertical-mode]] is installed as well... because vertical
+list is prettier than horizontal list? idk.
+
+#+BEGIN_SRC emacs-lisp
+(setq ido-enable-flex-matching t)
+(require 'ido)
+(ido-mode 1)
+(ido-everywhere 1)
+
+(use-package ido-vertical-mode
+  :init
+    (setq ido-vertical-define-keys 'C-n-C-p-up-and-down)
+    (setq ido-vertical-show-count t)
+  :config
+    (ido-vertical-mode 1))
+#+END_SRC
+
+Finally, [[https://github.com/DarwinAwardWinner/ido-completing-read-plus][ido-completing-read+]] is installed for replacing emacs completion
+for IDO... everywhere
+
+#+BEGIN_SRC emacs-lisp
+(use-package ido-completing-read+
+  :config
+    (ido-ubiquitous-mode 1))
+#+END_SRC
+
+The only IDO shortcut I need the most is to switch buffers:
+
+#+BEGIN_SRC emacs-lisp
+(general-nmap :prefix my-leader-key
+  "sb" 'ido-switch-buffer)
+  
+(cheatsheet-add
+  :group 'Navigation
+  :key (my-leader-shortcut/str "sb")
+  :description "Open switch buffer menu")
+#+END_SRC
+
+** Smex
+   
+[[https://github.com/nonsequitur/smex][Smex]] (built on top of ido) is used here as an =M-x= replacement.
+
+#+BEGIN_SRC emacs-lisp
+(use-package smex
+  :bind
+    ("M-x" . smex)
+    ("M-X" . smex-major-mode-commands)
+    ; and this is our old M-x, should we need it
+    ("C-c C-c M-x" . execute-extended-command))
+    
+(cheatsheet-add-group 'Smex
+  '(:key "M-x" :description "Opens smex to run commands")
+  '(:key "M-X" :description "Open major mode commands list")
+  '(:key "C-c C-c M-x" :description "Opens good ol' M-x instead of smex"))
+#+END_SRC
+
+** which-key
+   
+The package [[https://github.com/justbur/emacs-which-key][which-key]] will show possible keybindings for your currently entered incomplete command.
+
+#+BEGIN_SRC emacs-lisp
+(use-package which-key
+  :diminish
+  :init
+    (setq which-key-idle-delay 0.5)
+  :config
+    (which-key-mode))
+#+END_SRC
+
+** Projectile
+   
+Used ostensibly for package management.
+
+#+BEGIN_SRC emacs-lisp
+(use-package projectile
+  :config
+    (projectile-global-mode))
+    
+(general-nmap :prefix my-leader-key
+  "pf" 'projectile-find-file)
+  
+(cheatsheet-add
+  :group 'Navigation
+  :key (my-leader-shortcut/str "pf")
+  :description "Open projectile menu to find files within a project")
+#+END_SRC
+
+** Neotree
+   
+[[https://github.com/jaypei/emacs-neotree][Neotree]] opens a handy file explorer in a sidebar.. because sometimes we're not
+in a project and that comes in handy, y'know?
+
+#+BEGIN_SRC emacs-lisp
+(use-package neotree)
+
+(general-nmap :prefix my-leader-key "pt" 'neotree-toggle)
+
+(cheatsheet-add
+  :group 'Navigation
+  :key (my-leader-shortcut/str "pt")
+  :description "Toggle the NEOTree file explorer")
+#+END_SRC
+
+** ace-window
+   
+When navigating through two windows, =C-w C-w= (default from Evil) is great.  For more
+than that, [[https://github.com/abo-abo/ace-window][ace-window]] is a likely better.
+   
+#+BEGIN_SRC emacs-lisp
+(use-package ace-window
+  :bind
+    ("M-o" . ace-window))
+    
+(cheatsheet-add
+  :group 'Navigation
+  :key "M-o"
+  :description "Navigate windows using ace-window")
+#+END_SRC
+
+** origami
+   
+[[https://github.com/gregsexton/origami.el][Origami]] is a more decent code-folding mode for Emacs.
+
+#+BEGIN_SRC emacs-lisp
+(use-package origami
+  :diminish
+  :config
+    (global-origami-mode))
+    
+(general-nmap :prefix my-leader-key
+  "ff" 'origami-toggle-node
+  "fo" 'origami-open-node
+  "fc" 'origami-close-node
+  "fro" 'origami-open-node-recursively
+  "frc" 'origami-close-node-recursively)
+  
+(cheatsheet-add-group 'Folding
+  '(:key "SPC ff" :description "Toggle folding")
+  '(:key "SPC fo" :description "Opens a block")
+  '(:key "SPC fc" :description "Closes a block")
+  '(:key "SPC fro" :description "Recursively opens a block")
+  '(:key "SPC frc" :description "Recursively closes a block"))
+#+END_SRC
+
+** imenu-list
+   
+[[https://github.com/bmag/imenu-list][imenu-list]] creates a buffer containing the current buffer's [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][imenu]]
+entries.  Useful for finding definitions in a file.
+
+#+BEGIN_SRC emacs-lisp
+(use-package imenu-list
+  :diminish)
+  
+(general-nmap :prefix my-leader-key
+  "pa" 'imenu-list-smart-toggle)
+  
+; Yes, I am repeating the same function with a different binding here,
+; and I don't remember why I did that :(
+(general-nmap
+  "C-'" 'imenu-list-smart-toggle)
+  
+(cheatsheet-add
+  :group 'Navigation
+  :key (my-leader-shortcut/str "pa")
+  :description "Toggle imenu with up-to-date file's tags")
+#+END_SRC
+
+** TODO ispell
+** TODO flycheck
+** TODO company
+* Applications
+** TODO Elfeed
+** TODO Ranger
+** TODO Magit
+* Programming
+** TODO Python
+   
+Perhaps I must install JEDI outside of emacs?
+
+#+BEGIN_SRC emacs-lisp
+(defun my-python-hook ()
+  "Hook for setting up Python modes"
+  (anaconda-mode)
+  (company-mode)
+  (eldoc-mode)
+  (anaconda-eldoc-mode)
+  (indent-guide-mode)
+
+  (let ((venv (getenv "VIRTUAL_ENV")))
+    (if (not (eq venv nil))
+      (pythonic-activate venv))))
+
+(use-package anaconda-mode
+  :config
+    (add-hook 'python-mode-hook 'my-python-hook))
+
+(use-package company-anaconda
+  :config
+    (with-eval-after-load 'company
+      (add-to-list 'company-backends 'company-anaconda)))
+#+END_SRC
+
+** TODO Javascript
+
+#+BEGIN_SRC emacs-lisp
+(use-package js2-mode
+  :config
+    (setq js-indent-level 2))
+
+(use-package company-tern
+  :config
+    (with-eval-after-load 'company
+      (add-to-list 'company-backends 'company-tern)))
+#+END_SRC
+   
+** TODO Front-end
+   
+#+BEGIN_SRC emacs-lisp
+(use-package vue-mode)
+#+END_SRC
+
+** TODO Elixir
+
+#+BEGIN_SRC emacs-lisp
+(use-package elixir-mode)
+(use-package alchemist)
+#+END_SRC
+
+* Org
+* Custom functions
+** Splitting windows
+   
+Evil's default behavior on splitting doesn't focus on the new window
+when created. These functions fix this:
+
+#+BEGIN_SRC emacs-lisp
+(defun do-split ()
+  "Splits horizontally and focuses on the new window"
+  (interactive)
+  (evil-window-split)
+  (evil-window-down 1))
+  
+(defun do-vsplit ()
+  "Splits vertically and focuses on the new window"
+  (interactive)
+  (evil-window-vsplit)
+  (evil-window-right 1))
+  
+(general-nmap :prefix my-leader-key
+  "vv" 'do-vsplit
+  "ss" 'do-split)  
+  
+(cheatsheet-add-group 'Splitting
+  '(:key "SPC vv" :description "Split windows vertically")
+  '(:key "SPC ss" :description "Split windows horizontally"))
+#+END_SRC
