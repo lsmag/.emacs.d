@@ -15,8 +15,8 @@
   (package-install 'org))
 
 (require 'org)
-(setq lsmag/settings-org-file "settings.org")
-(setq lsmag/settings-org-path
+(setq lsmag-settings-org-file "settings.org")
+(setq lsmag-settings-org-path
       (expand-file-name
-       (concat user-emacs-directory lsmag/settings-org-file)))
-(org-babel-load-file lsmag/settings-org-path)
+       (concat user-emacs-directory lsmag-settings-org-file)))
+(org-babel-load-file lsmag-settings-org-path)
