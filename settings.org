@@ -84,14 +84,15 @@ all prefixed with =lsmag-=.
 * Appearance
 ** Theme
    
-The theme I'm using is light [[https://github.com/john2x/plan9-theme.el][plan9-theme]]. It's not "there" when I'm
-editing org files but for most everything else it's good enough for
-me.
+The theme I'm using is the light [[https://github.com/fniessen/emacs-leuven-theme][leuven-theme]]. 
 
 #+BEGIN_SRC emacs-lisp
-(use-package plan9-theme
+;(use-package plan9-theme
+;  :config
+;    (load-theme 'plan9 t))
+(use-package leuven-theme
   :config
-    (load-theme 'plan9 t))
+    (load-theme 'leuven t))
 #+END_SRC
 
 ** Fonts
@@ -190,6 +191,18 @@ using [[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]]:
 #+END_SRC
 
 * General
+** Dired
+   
+[[https://www.gnu.org/software/emacs/manual/html_node/dired-x/][Dired-x]] adds extra features to dired. For now, we only need dired to
+omit temporary files.
+
+#+BEGIN_SRC emacs-lisp
+(load "dired-x")
+(with-eval-after-load "dired"
+  (setq-default dired-omit-files-p t)
+  (setq dired-omit-files (concat dired-omit-files "^\\.|\\*|\\#")))
+#+END_SRC   
+
 ** Evil
 
 Hey, I like Vim's usability more than Emacs'. That's it, basically. [[https://github.com/emacs-evil/evil][Evil repo]]
@@ -452,8 +465,9 @@ modes (when editing programming language files) and on Org files.
   (t
     (setq ispell-program-name nil)))
     
-(add-hook 'prog-mode-hook #'flyspell-prog-mode)
-(add-hook 'org-mode-hook #'flypell-mode)
+(add-hook 'prog-mode-hook
+  (lambda ()
+    (flyspell-prog-mode)))
 #+END_SRC
 
 ** Syntax checker
@@ -488,10 +502,6 @@ pop-ups.
     (company-quickhelp-mode))
 #+END_SRC
 
-* Applications
-** TODO Elfeed
-** TODO Ranger
-** TODO Magit
 * Programming
 ** Python
    
@@ -567,22 +577,263 @@ Package: [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]
 
 * Org
   
-TODO
-add body
-
 #+BEGIN_SRC emacs-lisp
 (require 'org)
-(setq org-capture-templates
-  '(("t"
-     "Todo"
-     entry
-     (file+headline "~/codex/braindump.org" "Soon")
-     "* TODO %? %^g"
-     :prepend t)))
      
-(add-hook 'org-mode-hook #'flyspell-mode)
+(add-hook 'org-mode-hook
+  (lambda ()
+    (flyspell-mode)))
 #+END_SRC
 
+** Org-capture
+   
+I maintain an org file with a specific format as a planner.  To help
+me keep it organized, I use =org-capture= and =org-refile= tied together
+with a few custom functions.
+
+#+BEGIN_SRC emacs-lisp
+(setq lsmag-org-planner-path
+  (lsmag-get-key 'lsmag-org-planner-path "~/planner.org"))
+
+(setq org-capture-templates
+  '(("t"
+     "Journal todo"
+     entry
+     (file+olp lsmag-org-planner-path "Journal" "Next")
+     "*** TODO %? %^g"
+     :prepend t)
+    ("r"
+     "Reminder"
+     entry
+     (file+headline lsmag-org-planner-path "Reminders")
+     "** %?"
+     :prepend t)
+    ("d"
+     "Braindump"
+     entry
+     (file+headline lsmag-org-planner-path "Braindump")
+     "** %?"
+     :prepend t)))
+#+END_SRC
+
+** Custom settings for my planner
+
+The functions below all revolve around =lsmag-org-mark-as-done=, and
+it fills a very specific need for my planner file.
+
+In short, I keep tasks in a heading called =Next= and move them to a
+nearby =Done= heading once they're done. The done tasks are grouped by
+week, so the code below takes care of handling that, all at once, for
+me: marking the task as done then moving it to its week heading under
+=Done=.
+
+To understand more about how I use my planner file, [[file:README-planner.org][please read here]].
+
+Also: this whole code can probably be a lot simpler, but it was my
+first time actually writing elisp and I'm proud with the results.
+Anyway, feedback is always welcome :)
+
+#+BEGIN_SRC emacs-lisp
+(setq org-refile-use-outline-path 'file)
+(setq org-outline-path-complete-in-steps nil)
+(setq org-refile-targets '((nil . (:maxlevel . 4))))
+
+(defun lsmag-org-has-subheading-p ()
+  "Simply checks if heading has children"
+  (save-excursion
+    (org-goto-first-child)))
+      
+(defun lsmag-org-in-next-heading-p ()
+  "Checks whether current pointer is under a NEXT heading (case insensitive"
+  (save-excursion
+    (outline-up-heading 1)
+    (let* ((heading (org-element-at-point))
+           (title (downcase (org-element-property :title heading))))
+
+      (if (string-equal title "next") t nil))))
+
+(defun lsmag-org-current-week-string ()
+  "Uses GNU date to format the current week's header from Monday to Sunday"
+  (shell-command-to-string
+    "echo -n $(date --date=\"-$(($(date +%u) - 1)) day\" \"+%d %B %Y\") - $(date -dsunday \"+%d %B %Y\")"))
+
+(defun lsmag-org-check-current-week-done-heading-p ()
+  "Checks whether top heading under DONE archive represents current week"
+  (save-excursion
+    ; assumes pointer is on heading under Next, so it has to move up
+    ; then forward to point to Done
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+
+    ; move to first subheading and grab it
+    (if (lsmag-org-has-subheading-p)
+      (progn
+        (org-down-element)
+        (let* ((heading (org-element-at-point))
+               (title (org-element-property :title heading)))
+
+          (if (string-equal title (lsmag-org-current-week-string)) t nil)))
+      ; if there's no heading, just return falsy
+      nil)))
+    
+(defun lsmag-org-create-current-week-done-heading-above ()
+  "Creates a new weekly subheading as the first child"
+  (save-excursion
+    ; assumes pointer is on heading under Next, so it has to move up
+    ; then forward to point to Done
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; Descend to first element
+    (org-down-element)
+    ; insert new heading right above
+    (org-insert-heading)
+    
+    ; actually add text to it
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-week-string))))
+
+(defun lsmag-org-create-current-week-done-heading-new ()
+  "Creates a new weekly subheading when target header has no child headings"
+  (save-excursion
+    ; assumes pointer is on heading under Next, so it has to move up
+    ; then forward to point to Done
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; insert new heading and demote it (goes under Done)
+    (org-insert-heading-after-current)
+    (org-demote)
+    
+    ; actually add text to it
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-week-string))))
+
+(defun lsmag-org-create-current-week-done-heading ()
+  "Creates a new weekly heading inside the DONE archive"
+  (interactive)
+  (let ((has-subheading
+          (save-excursion
+            (outline-up-heading 1)
+            (org-forward-heading-same-level 1)
+            (lsmag-org-has-subheading-p))))
+
+    (if has-subheading
+      (lsmag-org-create-current-week-done-heading-above)
+      (lsmag-org-create-current-week-done-heading-new))))
+    
+(defun lsmag-org-refile-to-current-week-heading ()
+  "Refile current heading to weekly DONE archive"
+  (interactive)
+  (let ((target (save-excursion
+                  (outline-up-heading 1)
+                  (org-forward-heading-same-level 1)
+                  (org-down-element)
+		  (point))))
+
+    (org-refile nil nil
+      (list nil (buffer-file-name) nil target))))
+    
+(defun lsmag-org-mark-as-done ()
+  "Mark current heading as DONE and refile it to weekly DONE archive"
+  (interactive)
+  (when (not (lsmag-org-check-current-week-done-heading-p))
+    (lsmag-org-create-current-week-done-heading))
+    
+  (if (not (lsmag-org-in-next-heading-p))
+    (display-warning :warning "Won't refile, not in a task under Next level")
+    (progn
+      (org-todo 'done)
+      (lsmag-org-refile-to-current-week-heading))))
+  
+(general-nmap :prefix lsmag-leader-key
+  "oc" 'org-capture
+  "or" 'org-refile
+  "od" 'lsmag-org-mark-as-done)
+  
+(cheatsheet-add-group 'Org
+  `(:key ,(lsmag-leader-shortcut/str "oc") :description "Call org-capture")
+  `(:key ,(lsmag-leader-shortcut/str "or") :description "Call org-refile")
+  `(:key ,(lsmag-leader-shortcut/str "od") :description "Mark current task as done and archive it in the planner"))
+#+END_SRC
+
+* Applications
+** Elfeed
+   
+[[https://github.com/skeeto/elfeed][Elfeed]] is a feed reader. [[https://github.com/remyhonig/elfeed-org][Elfeed-org]] allows me to configure elfeed
+using org files <3
+
+#+BEGIN_SRC emacs-lisp
+(use-package elfeed)
+(use-package elfeed-org
+  :config
+    (elfeed-org)
+    ; The code below was copied from
+    ; https://github.com/jojojames/evil-collection/blob/master/evil-collection-elfeed.el
+    (evil-set-initial-state 'elfeed-search-mode 'motion)
+
+    (evil-define-key 'motion elfeed-search-mode-map
+      ;; open
+      (kbd "<return>") 'elfeed-search-show-entry
+      (kbd "S-<return>") 'elfeed-search-browse-url
+      "go" 'elfeed-search-browse-url
+
+      "y" 'elfeed-search-yank
+
+      ;; filter
+      "s" 'elfeed-search-live-filter
+      "S" 'elfeed-search-set-filter
+
+      ;; refresh
+      "gR" 'elfeed-search-fetch ; TODO: Which update function is more useful?
+      "gr" 'elfeed-search-update--force
+
+      ;; quit
+      "q" 'quit-window
+      "ZQ" 'quit-window
+      "ZZ" 'quit-window)
+
+    (evil-define-key '(motion visual) elfeed-search-mode-map
+      "+" 'elfeed-search-tag-all
+      "-" 'elfeed-search-untag-all
+      "U" 'elfeed-search-tag-all-unread
+      "u" 'elfeed-search-untag-all-unread)
+
+    (evil-set-initial-state 'elfeed-show-mode 'motion)
+    (evil-define-key 'motion elfeed-show-mode-map
+      (kbd "S-<return>") 'elfeed-show-visit
+      "go" 'elfeed-show-visit
+
+      ;; filter
+      "s" 'elfeed-show-new-live-search
+
+      "y" 'elfeed-show-yank
+
+      "+" 'elfeed-show-tag
+      "-" 'elfeed-show-untag
+
+      "A" 'elfeed-show-add-enclosure-to-playlist
+      "P" 'elfeed-show-play-enclosure
+      "d" 'elfeed-show-save-enclosure
+
+      "]" 'elfeed-show-next
+      "[" 'elfeed-show-prev
+      "gj" 'elfeed-show-next
+      "gk" 'elfeed-show-prev
+      (kbd "C-j") 'elfeed-show-next
+      (kbd "C-k") 'elfeed-show-prev
+
+      ;; refresh
+      "gr" 'elfeed-show-refresh
+
+      ;; quit
+      "q" 'elfeed-kill-buffer
+      "ZQ" 'elfeed-kill-buffer
+      "ZZ" 'elfeed-kill-buffer))
+#+END_SRC
+ 
+** TODO Ranger
+** TODO Magit
 * Custom functions
 ** Splitting windows
    
