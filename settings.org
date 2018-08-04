@@ -833,14 +833,18 @@ I might come around and try to remove the repetition later.
         ; After task has been refiled, we move the point to there to mark it as DONE.
         ; Since it's always refiled at the end, we move to the end of the subtree first
         (save-excursion
+          ; This will go to the first item under the week heading
           (goto-char target-week)
+          (outline-up-heading 1)
+          ; Move up, then down to the end of the subtree,
+          ; where the newly refiled heading is
           (org-end-of-subtree)
           (org-todo todo-keyword))))))
-	  
+
 (defun lsmag-org-done-and-refile ()
   (interactive)
-    (lsmag-org-mark-and-refile 'todo))
-    
+    (lsmag-org-mark-and-refile 'done))
+
 (defun lsmag-org-wontfix-and-refile ()
   (interactive)
     (lsmag-org-mark-and-refile "WONTFIX"))
