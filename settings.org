@@ -966,7 +966,22 @@ using org files <3
 #+END_SRC
 
 ** TODO Ranger
-** TODO Magit
+** TODO Git
+   
+#+BEGIN_SRC emacs-lisp
+(use-package magit)
+(use-package evil-magit)
+
+; Can't get that to play well with Evil... but someday I will
+; https://emacs.stackexchange.com/questions/9842/disable-evil-mode-when-git-timemachine-mode-is-activated
+; (use-package git-timemachine)
+; ;; @see https://bitbucket.org/lyro/evil/issue/511/let-certain-minor-modes-key-bindings
+; (with-eval-after-load git-timemachine
+;   (evil-make-overriding-map git-timemachine-mode-map 'normal)
+;   ;; force update evil keymaps after git-timemachine-mode loaded
+;   (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
+#+END_SRC
+
 * Custom functions
 ** Splitting windows
 
