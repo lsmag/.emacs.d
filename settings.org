@@ -581,17 +581,19 @@ Package: [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]
 #+END_SRC
 
 * Org
-  
+
 #+BEGIN_SRC emacs-lisp
 (require 'org)
-     
+
 (add-hook 'org-mode-hook
   (lambda ()
     (flyspell-mode)))
+
+(use-package htmlize)
 #+END_SRC
 
 ** Org-capture
-   
+
 I maintain an org file with a specific format as a planner.  To help
 me keep it organized, I use =org-capture= and =org-refile= tied together
 with a few custom functions.
