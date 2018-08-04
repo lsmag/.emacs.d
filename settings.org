@@ -2,9 +2,14 @@
 #+PROPERTY: header-args :tangle yes
 #+OPTIONS: TOC:nil
 
-TODO
-configure org-capture and org-refile to automate my
-braindump file thingy
+TODO move the splitting functions to the general section,
+where they belong!
+
+TODO also, tweak elfeed, and add documentation. PLEASE.
+
+TODO add new org-capture template with =file+function= to store it
+_under_ the very first DONE heading!
+https://github.com/tkf/org-mode/blob/master/lisp/org-capture.el#L914
 
 * About
 * Bootstrap
@@ -600,8 +605,7 @@ with a few custom functions.
      "Journal todo"
      entry
      (file+olp lsmag-org-planner-path "Journal" "Next")
-     "*** TODO %? %^g"
-     :prepend t)
+     "*** TODO %? %^g")
     ("r"
      "Reminder"
      entry
@@ -612,151 +616,247 @@ with a few custom functions.
      "Braindump"
      entry
      (file+headline lsmag-org-planner-path "Braindump")
-     "** %?"
-     :prepend t)))
+     "** %?")))
 #+END_SRC
 
 ** Custom settings for my planner
 
-The functions below all revolve around =lsmag-org-mark-as-done=, and
-it fills a very specific need for my planner file.
-
-In short, I keep tasks in a heading called =Next= and move them to a
-nearby =Done= heading once they're done. The done tasks are grouped by
-week, so the code below takes care of handling that, all at once, for
-me: marking the task as done then moving it to its week heading under
-=Done=.
+What the enormous and inefficient code below does is creating a context-aware =org-refile=.
+The function =org-lsmag-done-and-refile= and its sibling(s) will refile the task to
+a heading under a =YEAR->MONTH->WEEK= hierarchy.
 
 To understand more about how I use my planner file, [[file:README-planner.org][please read here]].
 
-Also: this whole code can probably be a lot simpler, but it was my
-first time actually writing elisp and I'm proud with the results.
+This whole thing can probably be a lot simpler, but it was my
+first time actually writing elisp and I'm proud of the results.
 Anyway, feedback is always welcome :)
 
+I might come around and try to remove the repetition later.
+   
 #+BEGIN_SRC emacs-lisp
-(setq org-refile-use-outline-path 'file)
-(setq org-outline-path-complete-in-steps nil)
-(setq org-refile-targets '((nil . (:maxlevel . 4))))
-
 (defun lsmag-org-has-subheading-p ()
-  "Simply checks if heading has children"
   (save-excursion
     (org-goto-first-child)))
-      
-(defun lsmag-org-in-next-heading-p ()
-  "Checks whether current pointer is under a NEXT heading (case insensitive"
-  (save-excursion
-    (outline-up-heading 1)
-    (let* ((heading (org-element-at-point))
-           (title (downcase (org-element-property :title heading))))
-
-      (if (string-equal title "next") t nil))))
 
 (defun lsmag-org-current-week-string ()
-  "Uses GNU date to format the current week's header from Monday to Sunday"
   (shell-command-to-string
-    "echo -n $(date --date=\"-$(($(date +%u) - 1)) day\" \"+%d %B %Y\") - $(date -dsunday \"+%d %B %Y\")"))
-
-(defun lsmag-org-check-current-week-done-heading-p ()
-  "Checks whether top heading under DONE archive represents current week"
-  (save-excursion
-    ; assumes pointer is on heading under Next, so it has to move up
-    ; then forward to point to Done
-    (outline-up-heading 1)
-    (org-forward-heading-same-level 1)
-
-    ; move to first subheading and grab it
-    (if (lsmag-org-has-subheading-p)
-      (progn
-        (org-down-element)
-        (let* ((heading (org-element-at-point))
-               (title (org-element-property :title heading)))
-
-          (if (string-equal title (lsmag-org-current-week-string)) t nil)))
-      ; if there's no heading, just return falsy
-      nil)))
+    "echo -n $(date --date=\"-$(($(date +%u) - 1)) day\" \"+%d %B\") - $(date -dsunday \"+%d %B\")"))
     
-(defun lsmag-org-create-current-week-done-heading-above ()
-  "Creates a new weekly subheading as the first child"
+(defun lsmag-org-current-month-string ()
+  (format-time-string "%B"))
+    
+(defun lsmag-org-current-year-string ()
+  (format-time-string "%Y"))
+  
+(defun lsmag-org-week-done-heading-is-current-p ()
   (save-excursion
-    ; assumes pointer is on heading under Next, so it has to move up
-    ; then forward to point to Done
+    ; move to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
     
-    ; Descend to first element
+    ; descent to WEEK heading
     (org-down-element)
-    ; insert new heading right above
-    (org-insert-heading)
+    (org-down-element)
+    (org-down-element)
     
-    ; actually add text to it
+    (string-equal (lsmag-org-current-week-string)
+                  (org-element-property :title (org-element-at-point)))))
+
+(defun lsmag-org-prepend-current-week-done-heading ()
+  (save-excursion
+    ; move point to DONE heading
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; descent to first child in WEEK heading
+    (org-down-element)
+    (org-down-element)
+    (org-down-element)
+    
+    ; insert new element above
+    (org-insert-heading)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-week-string))))
+  
+(defun lsmag-org-month-done-heading-is-current-p ()
+  (save-excursion
+    ; move to DONE heading
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; descent to MONTH heading
+    (org-down-element)
+    (org-down-element)
+    
+    (string-equal (lsmag-org-current-month-string)
+                  (org-element-property :title (org-element-at-point)))))
+
+(defun lsmag-org-prepend-current-month-done-heading-and-down ()
+  (save-excursion
+    ; move point to DONE heading
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; descent to first child in YEAR heading
+    (org-down-element)
+    (org-down-element)
+    
+    ; insert new element above
+    (org-insert-heading)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-month-string))
+
+    ; insert new WEEK heading and demote it (goes under YEAR)
+    (org-insert-heading-after-current)
+    (org-demote)
     (move-end-of-line nil)
     (insert (lsmag-org-current-week-string))))
 
-(defun lsmag-org-create-current-week-done-heading-new ()
-  "Creates a new weekly subheading when target header has no child headings"
+(defun lsmag-org-year-done-heading-is-current-p ()
   (save-excursion
-    ; assumes pointer is on heading under Next, so it has to move up
-    ; then forward to point to Done
+    ; move to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
     
-    ; insert new heading and demote it (goes under Done)
+    ; descent to YEAR heading
+    (org-down-element)
+    
+    (string-equal (lsmag-org-current-year-string)
+                  (org-element-property :title (org-element-at-point)))))
+
+(defun lsmag-org-prepend-current-year-done-heading-and-down ()
+  (save-excursion
+    ; move point to DONE heading
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; descent to first child in DONE heading
+    (org-down-element)
+    
+    ; insert new element above
+    (org-insert-heading)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-year-string))
+
+    ; insert new MONTH heading and demote it (goes under YEAR)
+    (org-insert-heading-after-current)
+    (org-demote)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-month-string))
+    
+    ; insert new WEEK heading and demote it (goes under MONTH)
+    (org-insert-heading-after-current)
+    (org-demote)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-week-string))))
+
+(defun lsmag-org-create-current-week-done-heading-prepend ()
+  (cond
+    ((not (lsmag-org-year-done-heading-is-current-p))
+      (lsmag-org-prepend-current-year-done-heading-and-down))
+    
+    ((not (lsmag-org-month-done-heading-is-current-p))
+      (lsmag-org-prepend-current-month-done-heading-and-down))
+      
+    ((not (lsmag-org-week-done-heading-is-current-p))
+      (lsmag-org-prepend-current-week-done-heading))))
+
+(defun lsmag-org-create-current-week-done-heading-new ()
+  (save-excursion
+    ; move point to DONE heading
+    (outline-up-heading 1)
+    (org-forward-heading-same-level 1)
+    
+    ; insert new YEAR heading and demote it (goes under DONE)
     (org-insert-heading-after-current)
     (org-demote)
     
-    ; actually add text to it
+    ; add year data to it
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-year-string))
+    
+    ; insert new MONTH heading and demote it (goes under YEAR)
+    (org-insert-heading-after-current)
+    (org-demote)
+    (move-end-of-line nil)
+    (insert (lsmag-org-current-month-string))
+    
+    ; insert new WEEK heading and demote it (goes under MONTH)
+    (org-insert-heading-after-current)
+    (org-demote)
     (move-end-of-line nil)
     (insert (lsmag-org-current-week-string))))
 
 (defun lsmag-org-create-current-week-done-heading ()
-  "Creates a new weekly heading inside the DONE archive"
   (interactive)
-  (let ((has-subheading
-          (save-excursion
-            (outline-up-heading 1)
-            (org-forward-heading-same-level 1)
-            (lsmag-org-has-subheading-p))))
+  ; move down to DONE heading to see if it has children
+  (let ((done-heading-has-subheading (save-excursion
+                                       (outline-up-heading 1)
+                                       (org-forward-heading-same-level 1)
+                                       (lsmag-org-has-subheading-p))))
 
-    (if has-subheading
-      (lsmag-org-create-current-week-done-heading-above)
+    (if done-heading-has-subheading
+      ; Add new week heading on the top
+      (lsmag-org-create-current-week-done-heading-prepend)
+      ; DONE heading has no subheadings, create a new one
       (lsmag-org-create-current-week-done-heading-new))))
-    
-(defun lsmag-org-refile-to-current-week-heading ()
-  "Refile current heading to weekly DONE archive"
+
+(defun lsmag-org-refile-to-current-week-done-heading ()
   (interactive)
   (let ((target (save-excursion
                   (outline-up-heading 1)
                   (org-forward-heading-same-level 1)
                   (org-down-element)
-		  (point))))
+                  (org-down-element)
+                  (org-down-element)
+                  (point))))
 
     (org-refile nil nil
-      (list nil (buffer-file-name) nil target))))
-    
-(defun lsmag-org-mark-as-done ()
-  "Mark current heading as DONE and refile it to weekly DONE archive"
-  (interactive)
-  (when (not (lsmag-org-check-current-week-done-heading-p))
-    (lsmag-org-create-current-week-done-heading))
-    
-  (if (not (lsmag-org-in-next-heading-p))
-    (display-warning :warning "Won't refile, not in a task under Next level")
+      (list nil (buffer-file-name) nil target))
+    target))
+
+(defun lsmag-org-point-in-next-heading-p ()
+  (save-excursion
+    (outline-up-heading 1)
+    (let* ((heading (org-element-at-point))
+           (title (downcase (org-element-property :title heading))))
+	   
+      (if (string-equal title "next") t nil))))
+
+(defun lsmag-org-mark-and-refile (todo-keyword)
+  "Mark current heading according to todo-keyword and refile it to weekly DONE archive"
+  (if (not (lsmag-org-point-in-next-heading-p))
+    (message "Won't mark as DONE and refile, not in a task under Next heading")
     (progn
-      (org-todo 'done)
-      (lsmag-org-refile-to-current-week-heading))))
-  
+      (lsmag-org-create-current-week-done-heading)
+      (let ((target-week (lsmag-org-refile-to-current-week-done-heading)))
+        ; After task has been refiled, we move the point to there to mark it as DONE.
+        ; Since it's always refiled at the end, we move to the end of the subtree first
+        (save-excursion
+          (goto-char target-week)
+          (org-end-of-subtree)
+          (org-todo todo-keyword))))))
+	  
+(defun lsmag-org-done-and-refile ()
+  (interactive)
+    (lsmag-org-mark-and-refile 'todo))
+    
+(defun lsmag-org-wontfix-and-refile ()
+  (interactive)
+    (lsmag-org-mark-and-refile "WONTFIX"))
+
 (general-nmap :prefix lsmag-leader-key
   "oc" 'org-capture
   "or" 'org-refile
-  "od" 'lsmag-org-mark-as-done)
+  "od" 'lsmag-org-done-and-refile
+  "ow" 'lsmag-org-wontfix-and-refile)
   
 (cheatsheet-add-group 'Org
   `(:key ,(lsmag-leader-shortcut/str "oc") :description "Call org-capture")
   `(:key ,(lsmag-leader-shortcut/str "or") :description "Call org-refile")
-  `(:key ,(lsmag-leader-shortcut/str "od") :description "Mark current task as done and archive it in the planner"))
+  `(:key ,(lsmag-leader-shortcut/str "od") :description "Mark current task as done and archive it in the planner")
+  `(:key ,(lsmag-leader-shortcut/str "ow") :description "Mark current task as wontfix and archive it in the planner"))
 #+END_SRC
-
 * Applications
 ** Elfeed
    
