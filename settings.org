@@ -1,6 +1,6 @@
 #+TITLE: lsmag's .emacs.d
 #+PROPERTY: header-args :tangle yes
-#+OPTIONS: TOC:nil
+#+OPTIONS: TOC:2
 
 TODO move the splitting functions to the general section,
 where they belong!
@@ -14,18 +14,18 @@ https://github.com/tkf/org-mode/blob/master/lisp/org-capture.el#L914
 * About
 * Bootstrap
 ** Configuration management
-   
+
 Most packages listed here are installed and configured using [[https://github.com/jwiegley/use-package][use-package]]
 coupled with [[https://github.com/emacsmirror/diminish][diminish]] to hide minor modes from the mode line.
-   
+
 #+BEGIN_SRC emacs-lisp
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
-  
+
 (require 'use-package)
 (setq use-package-verbose t         ; logs to *Messages* if package takes longer than 1s to load
       use-package-always-ensure t)  ; always ensures packages are installed
-      
+
 (use-package diminish)
 #+END_SRC
 
@@ -43,7 +43,7 @@ I set [[https://github.com/rranelli/auto-package-update.el][auto-package-update]
 #+END_SRC
 
 ** Documenting shortcuts
-   
+
 I try to use [[https://github.com/darksmile/cheatsheet][cheatsheet]] for documenting most shortcuts defined here.
 Type =M-x cheatsheet-show= to take a quick look at them.
 
@@ -52,7 +52,7 @@ Type =M-x cheatsheet-show= to take a quick look at them.
 #+END_SRC
 
 ** Specific customizations
-   
+
 Sometimes emacs likes to save some specific settings. To avoid
 having these appended to =.init.el=, we tell emacs to save them
 on a special ignored file.
@@ -61,24 +61,24 @@ on a special ignored file.
 (setq custom-file
       (expand-file-name
        (concat user-emacs-directory "custom.el")))
-       
+
 ; The `'noerror` here is to ensure emacs doesn't break
 ; the custom.el does not exist
 (load custom-file 'noerror)
 #+END_SRC
 
 ** User-defined variables
-   
+
 Some specific variables are kept separate in a gitignored file,
 all prefixed with =lsmag-=.
 
 #+BEGIN_SRC emacs-lisp
-(let ((lsmag-variables-path (expand-file-name 
+(let ((lsmag-variables-path (expand-file-name
                               (concat user-emacs-directory "my-variables.el"))))
 
   (when (file-exists-p lsmag-variables-path)
     (load-file lsmag-variables-path)))
-    
+
 (defun lsmag-get-key (variable default)
   "Evaluates variable if available or returns default"
   (if (boundp variable)
@@ -88,8 +88,8 @@ all prefixed with =lsmag-=.
 
 * Appearance
 ** Theme
-   
-The theme I'm using is the light [[https://github.com/fniessen/emacs-leuven-theme][leuven-theme]]. 
+
+The theme I'm using is the light [[https://github.com/fniessen/emacs-leuven-theme][leuven-theme]].
 
 #+BEGIN_SRC emacs-lisp
 ;(use-package plan9-theme
@@ -101,7 +101,7 @@ The theme I'm using is the light [[https://github.com/fniessen/emacs-leuven-them
 #+END_SRC
 
 ** Fonts
-   
+
 My favorite font is =Inconsolata=, you need to install it first for it
 to work here.
 
@@ -116,7 +116,7 @@ that, please consult [[https://github.com/domtronn/all-the-icons.el#installing-f
 #+END_SRC
 
 ** Mode line
-   
+
 I'm using [[https://github.com/Malabarba/smart-mode-line][smart-mode-line]] for beautiful and simple... mode lines (I
 know, _surprise_? I'll stop with the humour). I used to use the dark
 theme before but it didn't play too well with the plan9 theme.
@@ -131,7 +131,7 @@ theme before but it didn't play too well with the plan9 theme.
 #+END_SRC
 
 ** Cleaning up the UI
-   
+
 To make the editor look as clean as possible, some =bars= need to be disabled.
 
 #+BEGIN_SRC emacs-lisp
@@ -141,15 +141,15 @@ To make the editor look as clean as possible, some =bars= need to be disabled.
 #+END_SRC
 
 ** Frame title
-   
+
 This formats the frame title with the buffer name, its mode and where it's saved.
-   
+
 #+BEGIN_SRC emacs-lisp
 (setq frame-title-format '("" "%b %* [%m]"))
 #+END_SRC
 
 ** Visual helpers
-   
+
 Some built-in emacs configurations involve:
 - always highlight the current line
 - indicate empty lines
@@ -197,7 +197,7 @@ using [[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]]:
 
 * General
 ** Dired
-   
+
 [[https://www.gnu.org/software/emacs/manual/html_node/dired-x/][Dired-x]] adds extra features to dired. For now, we only need dired to
 omit temporary files.
 
@@ -206,7 +206,7 @@ omit temporary files.
 (with-eval-after-load "dired"
   (setq-default dired-omit-files-p t)
   (setq dired-omit-files (concat dired-omit-files "^\\.|\\*|\\#")))
-#+END_SRC   
+#+END_SRC
 
 ** Evil
 
@@ -225,12 +225,12 @@ other packages I used. The leader key used for shortcuts will be =SPC=.
 (use-package general
   :config
     (general-evil-setup))
-    
+
 (defconst lsmag-leader-key (lsmag-get-key 'lsmag-leader-prefix "SPC"))
 #+END_SRC
 
 When referring to shortcuts below - especially in inclusions for =cheatsheet=,
-the function below will cut some of the 
+the function below will cut some of the
 
 #+BEGIN_SRC emacs-lisp
 (defun lsmag-leader-shortcut/str (shortcut)
@@ -238,7 +238,7 @@ the function below will cut some of the
 #+END_SRC
 
 ** Ido
-   
+
 [[https://www.emacswiki.org/emacs/InteractivelyDoThings][Ido]] is an enhanced switch buffer, and comes preinstalled with Emacs 24.x.
 In addition, [[https://github.com/creichert/ido-vertical-mode.el][ido-vertical-mode]] is installed as well... because vertical
 list is prettier than horizontal list? idk.
@@ -271,7 +271,7 @@ The only IDO shortcut I need the most is to switch buffers:
 #+BEGIN_SRC emacs-lisp
 (general-nmap :prefix lsmag-leader-key
   "sb" 'ido-switch-buffer)
-  
+
 (cheatsheet-add
   :group 'Navigation
   :key (lsmag-leader-shortcut/str "sb")
@@ -279,7 +279,7 @@ The only IDO shortcut I need the most is to switch buffers:
 #+END_SRC
 
 ** Smex
-   
+
 [[https://github.com/nonsequitur/smex][Smex]] (built on top of ido) is used here as an =M-x= replacement.
 
 #+BEGIN_SRC emacs-lisp
@@ -289,7 +289,7 @@ The only IDO shortcut I need the most is to switch buffers:
     ("M-X" . smex-major-mode-commands)
     ; and this is our old M-x, should we need it
     ("C-c C-c M-x" . execute-extended-command))
-    
+
 (cheatsheet-add-group 'Smex
   '(:key "M-x" :description "Opens smex to run commands")
   '(:key "M-X" :description "Open major mode commands list")
@@ -297,7 +297,7 @@ The only IDO shortcut I need the most is to switch buffers:
 #+END_SRC
 
 ** Which-key
-   
+
 The package [[https://github.com/justbur/emacs-which-key][which-key]] will show possible keybindings for your currently entered incomplete command.
 
 #+BEGIN_SRC emacs-lisp
@@ -310,7 +310,7 @@ The package [[https://github.com/justbur/emacs-which-key][which-key]] will show 
 #+END_SRC
 
 ** Eldoc
-   
+
 [[https://www.emacswiki.org/emacs/ElDoc][Eldoc]] is a minor mode that shows the argument list of the function call in the echo area.
 Simple, but handy.
 
@@ -319,17 +319,17 @@ Simple, but handy.
 #+END_SRC
 
 ** Projectile
-   
+
 Used ostensibly for package management.
 
 #+BEGIN_SRC emacs-lisp
 (use-package projectile
   :config
     (projectile-global-mode))
-    
+
 (general-nmap :prefix lsmag-leader-key
   "pf" 'projectile-find-file)
-  
+
 (cheatsheet-add
   :group 'Navigation
   :key (lsmag-leader-shortcut/str "pf")
@@ -348,7 +348,7 @@ multiple workspaces with independent frames.
     (setq eyebrowse-new-workspace t)
   :config
     (eyebrowse-mode))
-    
+
 (general-nmap :prefix lsmag-leader-key
   "1" 'eyebrowse-switch-to-window-config-1
   "2" 'eyebrowse-switch-to-window-config-2
@@ -362,7 +362,7 @@ multiple workspaces with independent frames.
   "0" 'eyebrowse-switch-to-window-config-0
   "ww" 'eyebrowse-switch-to-last-window-config
   "wc" 'eyebrowse-close-window-config)
-  
+
 (cheatsheet-add-group 'Navigation
   `(:key ,(lsmag-leader-shortcut/str "<number>") :description "Switch to workspace")
   `(:key ,(lsmag-leader-shortcut/str "ww") :description "Switch to last used workspace")
@@ -370,7 +370,7 @@ multiple workspaces with independent frames.
 #+END_SRC
 
 ** File explorer
-   
+
 [[https://github.com/jaypei/emacs-neotree][Neotree]] opens a handy file explorer in a sidebar.. because sometimes we're not
 in a project and that comes in handy, y'know?
 
@@ -388,15 +388,15 @@ in a project and that comes in handy, y'know?
 #+END_SRC
 
 ** Frame navigation
-   
+
 When navigating through two windows, =C-w C-w= (default from Evil) is great.  For more
 than that, [[https://github.com/abo-abo/ace-window][ace-window]] is a likely better.
-   
+
 #+BEGIN_SRC emacs-lisp
 (use-package ace-window
   :bind
     ("M-o" . ace-window))
-    
+
 (cheatsheet-add
   :group 'Navigation
   :key "M-o"
@@ -404,7 +404,7 @@ than that, [[https://github.com/abo-abo/ace-window][ace-window]] is a likely bet
 #+END_SRC
 
 ** Code folding
-   
+
 [[https://github.com/gregsexton/origami.el][Origami]] is a more decent code-folding mode for Emacs.
 
 #+BEGIN_SRC emacs-lisp
@@ -412,14 +412,14 @@ than that, [[https://github.com/abo-abo/ace-window][ace-window]] is a likely bet
   :diminish
   :config
     (global-origami-mode))
-    
+
 (general-nmap :prefix lsmag-leader-key
   "ff" 'origami-toggle-node
   "fo" 'origami-open-node
   "fc" 'origami-close-node
   "fro" 'origami-open-node-recursively
   "frc" 'origami-close-node-recursively)
-  
+
 (cheatsheet-add-group 'Folding
   `(:key ,(lsmag-leader-shortcut/str "ff") :description "Toggle folding")
   `(:key ,(lsmag-leader-shortcut/str "fo") :description "Opens a block")
@@ -429,22 +429,22 @@ than that, [[https://github.com/abo-abo/ace-window][ace-window]] is a likely bet
 #+END_SRC
 
 ** Finding definitions in a file
-   
+
 [[https://github.com/bmag/imenu-list][imenu-list]] creates a buffer containing the current buffer's [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][imenu]]
 entries.  Useful for finding definitions in a file.
 
 #+BEGIN_SRC emacs-lisp
 (use-package imenu-list
   :diminish)
-  
+
 (general-nmap :prefix lsmag-leader-key
   "pa" 'imenu-list-smart-toggle)
-  
+
 ; Yes, I am repeating the same function with a different binding here,
 ; and I don't remember why I did that :(
 (general-nmap
   "C-'" 'imenu-list-smart-toggle)
-  
+
 (cheatsheet-add
   :group 'Navigation
   :key (lsmag-leader-shortcut/str "pa")
@@ -452,13 +452,13 @@ entries.  Useful for finding definitions in a file.
 #+END_SRC
 
 ** Spell checker
-   
+
 =Aspell= is my preferred spell checker. If not available, emacs will
 check for =hunspell= instead.
 
 I also set the spell checker to check comments and strings on prog
 modes (when editing programming language files) and on Org files.
-   
+
 #+BEGIN_SRC emacs-lisp
 (cond
   ((executable-find "aspell")
@@ -469,22 +469,22 @@ modes (when editing programming language files) and on Org files.
 
   (t
     (setq ispell-program-name nil)))
-    
+
 (add-hook 'prog-mode-hook
   (lambda ()
     (flyspell-prog-mode)))
 #+END_SRC
 
 ** Syntax checker
-   
+
 Easy enough, [[http://www.flycheck.org/en/latest/][flycheck]] is used globally. I've also added
 [[https://github.com/flycheck/flycheck-pos-tip][flycheck-pos-tip]] for sweet syntax check pop-ups.
-   
+
 #+BEGIN_SRC emacs-lisp
 (use-package flycheck
   :config
     (global-flycheck-mode))
-    
+
 (use-package flycheck-pos-tip
   :diminish
   :config
@@ -493,7 +493,7 @@ Easy enough, [[http://www.flycheck.org/en/latest/][flycheck]] is used globally. 
 #+END_SRC
 
 ** Text completion
-   
+
 [[https://company-mode.github.io/][Company]] is the main framework here. A few other specialized packages
 will be installed when needed, depending on
 language. [[https://github.com/expez/company-quickhelp][company-quickhelp]] extends company by adding completion
@@ -507,12 +507,39 @@ pop-ups.
     (company-quickhelp-mode))
 #+END_SRC
 
+** Tackling whitespace
+  
+Emacs adds tab characters every now and then... and I don't want that,
+'cause I don't like it.  Setting =indent-tabs-mode= to =nil= solves
+that _except_ for modes that already have this variable defined. Since
+I don't know which are, better go with =setq-default= ¯\_(ツ)_/¯
+
+With tab out of the way, we need to instruct emacs where to put
+[[https://www.emacswiki.org/emacs/TabStopList][tab stops]]. I use 2 spaces pretty much everywhere but in Python.
+
+Also there's [[https://github.com/lewang/ws-butler][https://github.com/lewang/ws-butler]] for removing trailing
+whitespace from recently edited lines. Emacs already provides [[https://www.emacswiki.org/emacs/DeletingWhitespace#toc3][similar
+functionality]] but then I risk removing whitespace from lines I didn't
+want, which might sometimes lead to HUUUUUGE diffs.
+   
+#+BEGIN_SRC emacs-lisp
+(setq-default indent-tabs-mode nil)
+
+(setq tab-stop-list (number-sequence 2 120 2))
+
+(use-package ws-butler)
+#+END_SRC
+
 * Programming
 ** Python
-   
+
 Packages: [[https://github.com/proofit404/anaconda-mode][Anaconda-mode]] and [[https://github.com/proofit404/company-anaconda][company-anaconda]]
 
 #+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook
+  '(lambda ()
+     (setq tab-stop-list (number-sequence 4 120 4))))
+
 (use-package anaconda-mode
   :config
     (add-hook 'python-mode-hook 'anaconda-mode)
@@ -525,7 +552,7 @@ Packages: [[https://github.com/proofit404/anaconda-mode][Anaconda-mode]] and [[h
 #+END_SRC
 
 ** Javascript
-   
+
 Packages: [[https://github.com/mooz/js2-mode][js2-mode]] and [[https://github.com/proofit404/company-tern][company-tern]]
 
 #+BEGIN_SRC emacs-lisp
@@ -538,11 +565,11 @@ Packages: [[https://github.com/mooz/js2-mode][js2-mode]] and [[https://github.co
     (with-eval-after-load 'company
       (add-to-list 'company-backends 'company-tern)))
 #+END_SRC
-   
+
 ** Front-end
-   
+
 Packages: [[http://web-mode.org/][web-mode]] and [[https://github.com/AdamNiederer/vue-mode][vue-mode]]
-   
+
 #+BEGIN_SRC emacs-lisp
 (use-package web-mode
   :config
@@ -559,7 +586,7 @@ Packages: [[http://web-mode.org/][web-mode]] and [[https://github.com/AdamNieder
 #+END_SRC
 
 ** Elixir
-   
+
 Packages: [[https://github.com/elixir-editors/emacs-elixir][elixir-mode]] an [[https://github.com/tonini/alchemist.el][alchemist]]
 
 #+BEGIN_SRC emacs-lisp
@@ -568,9 +595,9 @@ Packages: [[https://github.com/elixir-editors/emacs-elixir][elixir-mode]] an [[h
 #+END_SRC
 
 ** Markdown
-   
+
 Package: [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]
-   
+
 #+BEGIN_SRC emacs-lisp
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
@@ -634,7 +661,7 @@ first time actually writing elisp and I'm proud of the results.
 Anyway, feedback is always welcome :)
 
 I might come around and try to remove the repetition later.
-   
+
 #+BEGIN_SRC emacs-lisp
 (defun lsmag-org-has-subheading-p ()
   (save-excursion
@@ -643,24 +670,24 @@ I might come around and try to remove the repetition later.
 (defun lsmag-org-current-week-string ()
   (shell-command-to-string
     "echo -n $(date --date=\"-$(($(date +%u) - 1)) day\" \"+%d %B\") - $(date -dsunday \"+%d %B\")"))
-    
+
 (defun lsmag-org-current-month-string ()
   (format-time-string "%B"))
-    
+
 (defun lsmag-org-current-year-string ()
   (format-time-string "%Y"))
-  
+
 (defun lsmag-org-week-done-heading-is-current-p ()
   (save-excursion
     ; move to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to WEEK heading
     (org-down-element)
     (org-down-element)
     (org-down-element)
-    
+
     (string-equal (lsmag-org-current-week-string)
                   (org-element-property :title (org-element-at-point)))))
 
@@ -669,27 +696,27 @@ I might come around and try to remove the repetition later.
     ; move point to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to first child in WEEK heading
     (org-down-element)
     (org-down-element)
     (org-down-element)
-    
+
     ; insert new element above
     (org-insert-heading)
     (move-end-of-line nil)
     (insert (lsmag-org-current-week-string))))
-  
+
 (defun lsmag-org-month-done-heading-is-current-p ()
   (save-excursion
     ; move to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to MONTH heading
     (org-down-element)
     (org-down-element)
-    
+
     (string-equal (lsmag-org-current-month-string)
                   (org-element-property :title (org-element-at-point)))))
 
@@ -698,11 +725,11 @@ I might come around and try to remove the repetition later.
     ; move point to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to first child in YEAR heading
     (org-down-element)
     (org-down-element)
-    
+
     ; insert new element above
     (org-insert-heading)
     (move-end-of-line nil)
@@ -719,10 +746,10 @@ I might come around and try to remove the repetition later.
     ; move to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to YEAR heading
     (org-down-element)
-    
+
     (string-equal (lsmag-org-current-year-string)
                   (org-element-property :title (org-element-at-point)))))
 
@@ -731,10 +758,10 @@ I might come around and try to remove the repetition later.
     ; move point to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; descent to first child in DONE heading
     (org-down-element)
-    
+
     ; insert new element above
     (org-insert-heading)
     (move-end-of-line nil)
@@ -745,7 +772,7 @@ I might come around and try to remove the repetition later.
     (org-demote)
     (move-end-of-line nil)
     (insert (lsmag-org-current-month-string))
-    
+
     ; insert new WEEK heading and demote it (goes under MONTH)
     (org-insert-heading-after-current)
     (org-demote)
@@ -756,10 +783,10 @@ I might come around and try to remove the repetition later.
   (cond
     ((not (lsmag-org-year-done-heading-is-current-p))
       (lsmag-org-prepend-current-year-done-heading-and-down))
-    
+
     ((not (lsmag-org-month-done-heading-is-current-p))
       (lsmag-org-prepend-current-month-done-heading-and-down))
-      
+
     ((not (lsmag-org-week-done-heading-is-current-p))
       (lsmag-org-prepend-current-week-done-heading))))
 
@@ -768,21 +795,21 @@ I might come around and try to remove the repetition later.
     ; move point to DONE heading
     (outline-up-heading 1)
     (org-forward-heading-same-level 1)
-    
+
     ; insert new YEAR heading and demote it (goes under DONE)
     (org-insert-heading-after-current)
     (org-demote)
-    
+
     ; add year data to it
     (move-end-of-line nil)
     (insert (lsmag-org-current-year-string))
-    
+
     ; insert new MONTH heading and demote it (goes under YEAR)
     (org-insert-heading-after-current)
     (org-demote)
     (move-end-of-line nil)
     (insert (lsmag-org-current-month-string))
-    
+
     ; insert new WEEK heading and demote it (goes under MONTH)
     (org-insert-heading-after-current)
     (org-demote)
@@ -822,7 +849,7 @@ I might come around and try to remove the repetition later.
     (outline-up-heading 1)
     (let* ((heading (org-element-at-point))
            (title (downcase (org-element-property :title heading))))
-	   
+
       (if (string-equal title "next") t nil))))
 
 (defun lsmag-org-mark-and-refile (todo-keyword)
@@ -856,7 +883,7 @@ I might come around and try to remove the repetition later.
   "or" 'org-refile
   "od" 'lsmag-org-done-and-refile
   "ow" 'lsmag-org-wontfix-and-refile)
-  
+
 (cheatsheet-add-group 'Org
   `(:key ,(lsmag-leader-shortcut/str "oc") :description "Call org-capture")
   `(:key ,(lsmag-leader-shortcut/str "or") :description "Call org-refile")
@@ -865,7 +892,7 @@ I might come around and try to remove the repetition later.
 #+END_SRC
 * Applications
 ** Elfeed
-   
+
 [[https://github.com/skeeto/elfeed][Elfeed]] is a feed reader. [[https://github.com/remyhonig/elfeed-org][Elfeed-org]] allows me to configure elfeed
 using org files <3
 
@@ -937,12 +964,12 @@ using org files <3
       "ZQ" 'elfeed-kill-buffer
       "ZZ" 'elfeed-kill-buffer))
 #+END_SRC
- 
+
 ** TODO Ranger
 ** TODO Magit
 * Custom functions
 ** Splitting windows
-   
+
 Evil's default behavior on splitting doesn't focus on the new window
 when created. These functions fix this:
 
@@ -952,17 +979,17 @@ when created. These functions fix this:
   (interactive)
   (evil-window-split)
   (evil-window-down 1))
-  
+
 (defun lsmag-do-vsplit ()
   "Splits vertically and focuses on the new window"
   (interactive)
   (evil-window-vsplit)
   (evil-window-right 1))
-  
+
 (general-nmap :prefix lsmag-leader-key
   "vv" 'lsmag-do-vsplit
-  "ss" 'lsmag-do-split)  
-  
+  "ss" 'lsmag-do-split)
+
 (cheatsheet-add-group 'Splitting
   `(:key ,(lsmag-leader-shortcut/str "vv") :description "Split windows vertically")
   `(:key ,(lsmag-leader-shortcut/str "ss") :description "Split windows horizontally"))
