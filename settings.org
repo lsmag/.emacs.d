@@ -179,8 +179,10 @@ numbers everywhere else.
     (defun lsmag-absolute-linum ()
       (setq-local display-line-numbers t))
     
-    (add-hook 'evil-insert-state-entry-hook #'lsmag-absolute-linum)
-    (add-hook 'evil-insert-state-exit-hook #'lsmag-relative-linum)))
+    ; we're loading Evil later down in this file
+    (with-eval-after-load 'evil
+      (add-hook 'evil-insert-state-entry-hook #'lsmag-absolute-linum)
+      (add-hook 'evil-insert-state-exit-hook #'lsmag-relative-linum))))
 #+END_SRC
 
 
