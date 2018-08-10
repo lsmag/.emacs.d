@@ -629,6 +629,14 @@ Package: [[https://jblevins.org/projects/markdown-mode/][markdown-mode]]
   :init (setq markdown-command "multimarkdown"))
 #+END_SRC
 
+** Haskell
+   
+Package: [[https://github.com/haskell/haskell-mode][haskell-mode]]
+
+#+BEGIN_SRC emacs-lisp
+(use-package haskell-mode)
+#+END_SRC
+
 * Org
 
 #+BEGIN_SRC emacs-lisp
