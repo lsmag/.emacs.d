@@ -154,13 +154,35 @@ Some built-in emacs configurations involve:
 - always highlight the current line
 - indicate empty lines
 - show line numbers
+  
+I'm using =display-line-numbers-mode= instead of the older
+=linum-mode= here because I can toggle absolute/relative line numbers
+with it.  The snippet below was copied from [[https://github.com/noctuid/evil-guide#how-can-i-have-relative-line-numbers][noctuid's evil-guide]] for
+turning absolute line numbers when on insert mode, and use relative
+numbers everywhere else.
 
 #+BEGIN_SRC emacs-lisp
 (global-hl-line-mode 1)  ; always highlight the current line
-(global-linum-mode t)  ; shows line numbers
-
 (setq indicate-empty-lines t)
+
+(if (version< emacs-version "26.1")
+  (message "You need Emacs > 26.1 to make use of display-line-numbers mode")
+  (progn
+    (setq-default display-line-numbers 'visual
+                  display-line-numbers-widen t
+                  ;; this is the default
+                  display-line-numbers-current-absolute t)
+    
+    (defun lsmag-relative-linum ()
+      (setq-local display-line-numbers 'visual))
+    
+    (defun lsmag-absolute-linum ()
+      (setq-local display-line-numbers t))
+    
+    (add-hook 'evil-insert-state-entry-hook #'lsmag-absolute-linum)
+    (add-hook 'evil-insert-state-exit-hook #'lsmag-relative-linum)))
 #+END_SRC
+
 
 I'm using [[https://github.com/alpaker/Fill-Column-Indicator][fill-column-indicator]] to draw a red line on column 120 to serve
 as a guide too avoid too long lines.
